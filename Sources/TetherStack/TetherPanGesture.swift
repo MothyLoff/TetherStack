@@ -50,14 +50,13 @@ struct TetherPanGesture: UIGestureRecognizerRepresentable {
 
         case .changed:
             let dx = context.converter.localTranslation?.x ?? 0
-            // Ширина ведущего ряда: 1:1 до revealFraction·width, дальше резинка.
-            // Если ширина ещё не измерена (0) - rubberBand вернёт dx (1:1).
+            // Гладкая резинка трансляции (arctan): 1:1 в начале, плавно тормозит.
+            // Масштаб сопротивления d = resistanceFraction · ширина ведущего ряда.
+            // Если ширина ещё не измерена (0) - resist вернёт dx (1:1).
             let w = drag.leadIndex.flatMap { rowWidths[$0] } ?? 0
-            drag.leadTranslation = TetherPhysics.rubberBand(
+            drag.leadTranslation = TetherPhysics.resist(
                 dx,
-                edge: TetherLayout.revealFraction * w,
-                dim: w,
-                c: TetherLayout.rubberBandC
+                d: TetherLayout.resistanceFraction * w
             )
 
         case .ended, .cancelled, .failed:

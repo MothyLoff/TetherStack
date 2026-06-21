@@ -8,7 +8,7 @@ struct TetherDragState: Equatable {
     var leadIndex: Int?
 
     /// Горизонтальное смещение ведущей плашки в точках (уже пропущено через
-    /// `TetherPhysics.rubberBand`). Знак: + вправо, - влево.
+    /// `TetherPhysics.resist`). Знак: + вправо, - влево.
     var leadTranslation: CGFloat = 0
 
     var isActive: Bool { leadIndex != nil }

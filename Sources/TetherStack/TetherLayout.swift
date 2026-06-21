@@ -14,13 +14,12 @@ enum TetherLayout {
 
     /// Доля ширины ряда, на которой подложка раскрыта полностью (progress = 1).
     /// Сдвиг дальше даёт progress > 1 (оттягивание сверх раскрытия).
-    /// Та же величина - край 1:1-региона трансляции: до `revealFraction · width`
-    /// палец двигает плашку 1:1, дальше включается резинка (см. `rubberBandC`).
     static let revealFraction: CGFloat = 0.55
 
-    /// Жёсткость резинки трансляции у границы 1:1-региона - reverse-engineered
-    /// overscroll `UIScrollView`. iOS ≈ 0.55. Меньше → жёстче тормозит за краем.
-    static let rubberBandC: CGFloat = 0.35
+    /// Масштаб сопротивления гладкой резинки трансляции как доля ширины ряда:
+    /// `d = resistanceFraction · width` в `TetherPhysics.resist`. Меньше → плашка
+    /// начинает тормозить раньше и ход короче; больше → дольше идёт почти 1:1.
+    static let resistanceFraction: CGFloat = 0.7
 
     /// Пружина возврата плашки после отпускания. Пресет и длительность как в
     /// эталоне (MultiSwipe): `.bouncy` = spring с bounce ~0.3.
