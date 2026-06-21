@@ -11,17 +11,10 @@ struct TetherDragState: Equatable {
     /// `TetherPhysics.resist`). Знак: + вправо, - влево.
     var leadTranslation: CGFloat = 0
 
-    var isActive: Bool { leadIndex != nil }
-
     /// Смещение ряда `index` с учётом затухания по дистанции до ведущего.
     func offset(for index: Int) -> CGFloat {
         guard let lead = leadIndex else { return 0 }
-        let d = CGFloat(index - lead)
-        return leadTranslation * TetherPhysics.falloff(d: d)
-    }
-
-    mutating func reset() {
-        leadIndex = nil
-        leadTranslation = 0
+        let distance = CGFloat(index - lead)
+        return leadTranslation * TetherPhysics.falloff(d: distance)
     }
 }

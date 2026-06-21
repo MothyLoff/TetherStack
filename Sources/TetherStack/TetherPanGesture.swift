@@ -53,10 +53,10 @@ struct TetherPanGesture: UIGestureRecognizerRepresentable {
             // Гладкая резинка трансляции (arctan): 1:1 в начале, плавно тормозит.
             // Масштаб сопротивления d = resistanceFraction · ширина ведущего ряда.
             // Если ширина ещё не измерена (0) - resist вернёт dx (1:1).
-            let w = drag.leadIndex.flatMap { rowWidths[$0] } ?? 0
+            let leadWidth = drag.leadIndex.flatMap { rowWidths[$0] } ?? 0
             drag.leadTranslation = TetherPhysics.resist(
                 dx,
-                d: TetherLayout.resistanceFraction * w
+                d: TetherLayout.resistanceFraction * leadWidth
             )
 
         case .ended, .cancelled, .failed:
@@ -93,8 +93,8 @@ struct TetherPanGesture: UIGestureRecognizerRepresentable {
         /// явном горизонтальном доминировании, иначе уступаем скроллу.
         func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
             guard let pan = gestureRecognizer as? UIPanGestureRecognizer else { return true }
-            let v = pan.velocity(in: pan.view)
-            return abs(v.x) > abs(v.y) * TetherLayout.horizontalBias
+            let velocity = pan.velocity(in: pan.view)
+            return abs(velocity.x) > abs(velocity.y) * TetherLayout.horizontalBias
         }
 
         /// Чужой recognizer передают параметром - не нужен обход иерархии.

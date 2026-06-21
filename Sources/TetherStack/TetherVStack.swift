@@ -19,8 +19,8 @@ import SwiftUI
 /// ```
 ///
 /// Тянешь одну плашку вбок - она идёт за пальцем, соседи выше и ниже следуют с
-/// экспоненциальным... нет, инверс-квадратным затуханием по `|i - lead|`
-/// (см. `TetherPhysics`). Peek с пружинным возвратом на отпускание.
+/// инверс-квадратным затуханием по `|i - lead|` (см. `TetherPhysics`). Peek с
+/// пружинным возвратом на отпускание.
 public struct TetherVStack<Content: View>: View {
 
     private let alignment: HorizontalAlignment
@@ -141,11 +141,11 @@ private struct TetherRow<Front: View>: View, @MainActor Animatable {
     }
 
     /// Прогресс раскрытия стороны. Положителен только когда плашка ушла в эту
-    /// сторону (`o > 0`). `progress = 1` при сдвиге на `revealFraction` ширины;
-    /// может быть `> 1` при оттягивании дальше (для будущего эффекта).
-    private func reveal(forSignedOffset o: CGFloat) -> CGFloat {
-        guard o > 0, width > 0 else { return 0 }
-        return o / (TetherLayout.revealFraction * width)
+    /// сторону (`signedOffset > 0`). `progress = 1` при сдвиге на `revealFraction`
+    /// ширины; может быть `> 1` при оттягивании дальше (для будущего эффекта).
+    private func reveal(forSignedOffset signedOffset: CGFloat) -> CGFloat {
+        guard signedOffset > 0, width > 0 else { return 0 }
+        return signedOffset / (TetherLayout.revealFraction * width)
     }
 
     private func underlay(
@@ -164,7 +164,7 @@ private struct TetherRow<Front: View>: View, @MainActor Animatable {
         // Горизонталь якоря - сторона раскрытия (функциональная ось), вертикаль -
         // пользовательский verticalAlignment (косметическая, дефолт .center).
         let blurRadius: CGFloat = progress > 0
-            ? min(TetherLayout.maxBlur, TetherLayout.revealBlurK / progress)
+            ? min(TetherLayout.maxBlur, TetherLayout.blurAtFullReveal / progress)
             : TetherLayout.maxBlur
         let dx = parallaxSign * TetherLayout.parallaxTuckFraction * width * (1 - progress)
 
