@@ -23,6 +23,7 @@ import SwiftUI
 /// (см. `TetherPhysics`). Peek с пружинным возвратом на отпускание.
 public struct TetherVStack<Content: View>: View {
 
+    private let alignment: HorizontalAlignment
     private let spacing: CGFloat?
     private let content: Content
 
@@ -32,16 +33,26 @@ public struct TetherVStack<Content: View>: View {
     /// жеста, чтобы по точке касания определить ведущую плашку.
     @State private var rowCenters: [Int: CGFloat] = [:]
 
-    /// `spacing` по умолчанию `nil` - как у нативного `VStack` (системный
-    /// адаптивный интервал), а не фиксированный ноль.
-    public init(spacing: CGFloat? = nil, @ViewBuilder content: () -> Content) {
+    /// - Parameters:
+    ///   - alignment: горизонтальное выравнивание рядов, как у `LazyVStack`.
+    ///     По умолчанию `.center`. Имеет смысл для рядов уже контейнера; ряды
+    ///     во всю ширину (например `.frame(maxWidth:)` на front) выравнивать
+    ///     нечего.
+    ///   - spacing: по умолчанию `nil` - как у нативного `VStack`/`LazyVStack`
+    ///     (системный адаптивный интервал), а не фиксированный ноль.
+    public init(
+        alignment: HorizontalAlignment = .center,
+        spacing: CGFloat? = nil,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.alignment = alignment
         self.spacing = spacing
         self.content = content()
     }
 
     public var body: some View {
         Group(subviews: content) { subviews in
-            LazyVStack(spacing: spacing) {
+            LazyVStack(alignment: alignment, spacing: spacing) {
                 ForEach(subviews.indices, id: \.self) { index in
                     let subview = subviews[index]
                     TetherRow(
@@ -93,11 +104,11 @@ private struct TetherRow<Front: View>: View {
         // всегда; раскрытие стороны - непрерывная функция offset (reveal), на
         // перелёте пружины противоположная сторона раскрыта ~0, мигать нечему.
         //
-        // front тянется на всю ширину силами контейнера (.frame(maxWidth:)), а не
-        // за счёт растягивающейся фигуры внутри; padding пользователь добавляет
-        // сверху сам.
+        // Ширину front НЕ форсим: ряд занимает натуральную ширину контента, а
+        // позиционирует его горизонтальный alignment контейнера (как нативный
+        // LazyVStack). Подложки перекрыты при любой ширине - они background'и
+        // самого front'а. Нужен full-width - ставь .frame(maxWidth:) на front.
         front
-            .frame(maxWidth: .infinity)
             .offset(x: offset)
             .background {
                 if let leading {
