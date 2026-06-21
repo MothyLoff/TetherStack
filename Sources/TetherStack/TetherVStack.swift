@@ -99,6 +99,11 @@ private struct TetherRow<Front: View>: View {
             }
 
             front
+                // Дефолт API: front-контент тянется на всю ширину ряда силами
+                // контейнера (а не за счёт того, что внутри лежит растягивающаяся
+                // фигура). Так underlay по краям всегда перекрыты в покое, а
+                // padding пользователь накидывает сверху сам.
+                .frame(maxWidth: .infinity)
                 .offset(x: offset)
         }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
