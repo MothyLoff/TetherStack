@@ -41,7 +41,7 @@ public struct TetherVStack<Content: View>: View {
 
     public var body: some View {
         Group(subviews: content) { subviews in
-            VStack(spacing: spacing) {
+            LazyVStack(spacing: spacing) {
                 ForEach(subviews.indices, id: \.self) { index in
                     let subview = subviews[index]
                     TetherRow(
@@ -57,9 +57,9 @@ public struct TetherVStack<Content: View>: View {
                     }
                 }
             }
-            // Жест - на VStack рядов; координатное пространство объявлено выше,
-            // на Group, чтобы converter.location(in:) резолвил его как предка
-            // вью, к которой привязан recognizer.
+            // Жест - на LazyVStack рядов; координатное пространство объявлено
+            // выше, на Group, чтобы converter.location(in:) резолвил его как
+            // предка вью, к которой привязан recognizer.
             .gesture(
                 TetherPanGesture(
                     drag: $drag,
