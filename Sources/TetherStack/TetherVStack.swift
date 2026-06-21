@@ -76,8 +76,8 @@ public struct TetherVStack<Content: View>: View {
 private struct TetherRow<Front: View>: View {
 
     let front: Front
-    let leading: AnyView?
-    let trailing: AnyView?
+    let leading: TetherUnderlayContent?
+    let trailing: TetherUnderlayContent?
     let offset: CGFloat
 
     @State private var width: CGFloat = 0
@@ -90,11 +90,11 @@ private struct TetherRow<Front: View>: View {
             // по знаку offset. Поэтому на перелёте пружины через ноль
             // противоположная сторона раскрыта почти на ноль - мигать нечему.
             if let leading {
-                underlay(leading, alignment: .leading, parallaxSign: -1,
+                underlay(leading, horizontal: .leading, parallaxSign: -1,
                          progress: reveal(forSignedOffset: offset))
             }
             if let trailing {
-                underlay(trailing, alignment: .trailing, parallaxSign: 1,
+                underlay(trailing, horizontal: .trailing, parallaxSign: 1,
                          progress: reveal(forSignedOffset: -offset))
             }
 
@@ -118,8 +118,8 @@ private struct TetherRow<Front: View>: View {
     }
 
     private func underlay(
-        _ view: AnyView,
-        alignment: Alignment,
+        _ content: TetherUnderlayContent,
+        horizontal: HorizontalAlignment,
         parallaxSign: CGFloat,
         progress: CGFloat
     ) -> some View {
@@ -129,13 +129,20 @@ private struct TetherRow<Front: View>: View {
         // - opacity: progress, клампленный в 1.
         // - параллакс: при progress=0 утоплено на долю ширины, к progress=1
         //   приезжает на место (home), при >1 продолжает уезжать.
+        //
+        // Горизонталь якоря - сторона раскрытия (функциональная ось), вертикаль -
+        // пользовательский verticalAlignment (косметическая, дефолт .center).
         let blurRadius: CGFloat = progress > 0
             ? min(TetherLayout.maxBlur, TetherLayout.revealBlurK / progress)
             : TetherLayout.maxBlur
         let dx = parallaxSign * TetherLayout.parallaxTuckFraction * width * (1 - progress)
 
-        return view
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
+        return content.view
+            .frame(
+                maxWidth: .infinity,
+                maxHeight: .infinity,
+                alignment: Alignment(horizontal: horizontal, vertical: content.verticalAlignment.resolved)
+            )
             .blur(radius: blurRadius)
             .opacity(Double(min(progress, 1)))
             .offset(x: dx)
