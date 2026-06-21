@@ -78,26 +78,44 @@ private struct TetherRow<Front: View>: View {
     let trailing: AnyView?
     let offset: CGFloat
 
+    @State private var width: CGFloat = 0
+
     var body: some View {
         ZStack {
-            // Под плашкой - подложка той стороны, в которую сейчас тянем.
-            // offset > 0: front уехал вправо, обнажился ЛЕВЫЙ (leading) край.
-            // offset < 0: front уехал влево, обнажился ПРАВЫЙ (trailing) край.
-            if offset > 0, let leading {
-                underlay(leading, alignment: .leading)
-            } else if offset < 0, let trailing {
-                underlay(trailing, alignment: .trailing)
+            // Обе подложки лежат под плашкой ВСЕГДА; непрозрачная плашка
+            // закрывает их в покое. Раскрытие каждой стороны - НЕПРЕРЫВНАЯ
+            // функция от положения плашки (reveal(forSignedOffset:)), без веток
+            // по знаку offset. Поэтому на перелёте пружины через ноль
+            // противоположная сторона раскрыта почти на ноль - мигать нечему.
+            if let leading {
+                underlay(leading, alignment: .leading,
+                         progress: reveal(forSignedOffset: offset))
+            }
+            if let trailing {
+                underlay(trailing, alignment: .trailing,
+                         progress: reveal(forSignedOffset: -offset))
             }
 
             front
                 .offset(x: offset)
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
     }
 
-    private func underlay(_ view: AnyView, alignment: Alignment) -> some View {
+    /// Прогресс раскрытия стороны. Положителен только когда плашка ушла в эту
+    /// сторону (`o > 0`). `progress = 1` при сдвиге на `revealFraction` ширины;
+    /// может быть `> 1` при оттягивании дальше (для будущего эффекта).
+    private func reveal(forSignedOffset o: CGFloat) -> CGFloat {
+        guard o > 0, width > 0 else { return 0 }
+        return o / (TetherLayout.revealFraction * width)
+    }
+
+    private func underlay(_ view: AnyView, alignment: Alignment, progress: CGFloat) -> some View {
         view
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
-            // TODO(физика): кламп блюра при порте reveal-рецепта из демки -
-            // в оригинале blur(radius: 1/oC * 30) взрывался при малом oC.
+            // Дефолтный reveal - opacity по прогрессу (клампим в 1; сам progress
+            // не ограничен). Позже здесь будет твой tether-эффект, читающий
+            // progress (блюр/скейл), пока всё внутреннее.
+            .opacity(Double(min(progress, 1)))
     }
 }
