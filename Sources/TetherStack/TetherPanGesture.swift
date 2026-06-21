@@ -20,6 +20,9 @@ struct TetherPanGesture: UIGestureRecognizerRepresentable {
     /// Вертикальные центры рядов в координатах `TetherLayout.coordinateSpaceName`.
     let rowCenters: [Int: CGFloat]
 
+    /// Ширины рядов по индексу - для резинки трансляции (edge/dim ведущего ряда).
+    let rowWidths: [Int: CGFloat]
+
     func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator {
         Coordinator()
     }
@@ -47,7 +50,15 @@ struct TetherPanGesture: UIGestureRecognizerRepresentable {
 
         case .changed:
             let dx = context.converter.localTranslation?.x ?? 0
-            drag.leadTranslation = dx / TetherPhysics.fingerDivisor
+            // Ширина ведущего ряда: 1:1 до revealFraction·width, дальше резинка.
+            // Если ширина ещё не измерена (0) - rubberBand вернёт dx (1:1).
+            let w = drag.leadIndex.flatMap { rowWidths[$0] } ?? 0
+            drag.leadTranslation = TetherPhysics.rubberBand(
+                dx,
+                edge: TetherLayout.revealFraction * w,
+                dim: w,
+                c: TetherLayout.rubberBandC
+            )
 
         case .ended, .cancelled, .failed:
             // Peek: пружинный возврат в ноль. Перелёт через ноль разрешён -

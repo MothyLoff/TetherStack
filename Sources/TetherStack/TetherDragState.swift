@@ -7,8 +7,8 @@ struct TetherDragState: Equatable {
     /// Индекс ведущей плашки (под которой начался жест). `nil` - оттягивания нет.
     var leadIndex: Int?
 
-    /// Горизонтальное смещение ведущей плашки в точках (уже поделено на
-    /// `TetherPhysics.fingerDivisor`). Знак: + вправо, - влево.
+    /// Горизонтальное смещение ведущей плашки в точках (уже пропущено через
+    /// `TetherPhysics.rubberBand`). Знак: + вправо, - влево.
     var leadTranslation: CGFloat = 0
 
     var isActive: Bool { leadIndex != nil }

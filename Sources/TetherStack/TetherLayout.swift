@@ -14,11 +14,17 @@ enum TetherLayout {
 
     /// Доля ширины ряда, на которой подложка раскрыта полностью (progress = 1).
     /// Сдвиг дальше даёт progress > 1 (оттягивание сверх раскрытия).
-    static let revealFraction: CGFloat = 0.25
+    /// Та же величина - край 1:1-региона трансляции: до `revealFraction · width`
+    /// палец двигает плашку 1:1, дальше включается резинка (см. `rubberBandC`).
+    static let revealFraction: CGFloat = 0.55
+
+    /// Жёсткость резинки трансляции у границы 1:1-региона - reverse-engineered
+    /// overscroll `UIScrollView`. iOS ≈ 0.55. Меньше → жёстче тормозит за краем.
+    static let rubberBandC: CGFloat = 0.35
 
     /// Пружина возврата плашки после отпускания. Пресет и длительность как в
     /// эталоне (MultiSwipe): `.bouncy` = spring с bounce ~0.3.
-    static let returnAnimation: Animation = .bouncy(duration: 0.3)
+    static let returnAnimation: Animation = .bouncy(duration: 0.35)
 
     /// Reveal-блюр: подложка выплывает из расфокуса по мере оттягивания.
     /// `radius = min(maxBlur, revealBlurK / progress)`, гипербола - сильный
@@ -27,7 +33,7 @@ enum TetherLayout {
     /// В нуле гипербола доопределена пределом `maxBlur` (а не 0), чтобы
     /// функция была непрерывной; на `opacity = 0` blur-пасс система скипает.
     static let maxBlur: CGFloat = 24
-    static let revealBlurK: CGFloat = 0.4
+    static let revealBlurK: CGFloat = 0.2
 
     /// Параллакс подложки как доля ширины ряда. При `progress = 0` подложка
     /// утоплена на `parallaxTuckFraction · width` в сторону края, при `1` - ровно

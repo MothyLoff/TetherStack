@@ -33,6 +33,9 @@ public struct TetherVStack<Content: View>: View {
     /// жеста, чтобы по точке касания определить ведущую плашку.
     @State private var rowCenters: [Int: CGFloat] = [:]
 
+    /// Ширины рядов - нужны жесту для резинки трансляции ведущего ряда.
+    @State private var rowWidths: [Int: CGFloat] = [:]
+
     /// - Parameters:
     ///   - alignment: горизонтальное выравнивание рядов, как у `LazyVStack`.
     ///     По умолчанию `.center`. Имеет смысл для рядов уже контейнера; ряды
@@ -65,6 +68,7 @@ public struct TetherVStack<Content: View>: View {
                         proxy.frame(in: .named(TetherLayout.coordinateSpaceName))
                     } action: { frame in
                         rowCenters[index] = frame.midY
+                        rowWidths[index] = frame.width
                     }
                 }
             }
@@ -74,7 +78,8 @@ public struct TetherVStack<Content: View>: View {
             .gesture(
                 TetherPanGesture(
                     drag: $drag,
-                    rowCenters: rowCenters
+                    rowCenters: rowCenters,
+                    rowWidths: rowWidths
                 )
             )
         }
