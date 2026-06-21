@@ -128,3 +128,9 @@ public enum TetherVerticalAlignment {
 ```
 
 The vertical alignment of underlay content within a row's height. The row's height is set by the front row view.
+
+## License
+
+TetherStack is available under the MIT License (see [LICENSE](LICENSE)). You may use, modify, and distribute it, including in commercial products, provided the copyright notice and license text are retained.
+
+A credit to [@MothyLoff](https://github.com/MothyLoff) in commercial products is appreciated. For terms outside the MIT License, open an issue on the repository.
