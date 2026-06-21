@@ -90,11 +90,11 @@ private struct TetherRow<Front: View>: View {
             // по знаку offset. Поэтому на перелёте пружины через ноль
             // противоположная сторона раскрыта почти на ноль - мигать нечему.
             if let leading {
-                underlay(leading, alignment: .leading,
+                underlay(leading, alignment: .leading, parallaxSign: -1,
                          progress: reveal(forSignedOffset: offset))
             }
             if let trailing {
-                underlay(trailing, alignment: .trailing,
+                underlay(trailing, alignment: .trailing, parallaxSign: 1,
                          progress: reveal(forSignedOffset: -offset))
             }
 
@@ -117,12 +117,27 @@ private struct TetherRow<Front: View>: View {
         return o / (TetherLayout.revealFraction * width)
     }
 
-    private func underlay(_ view: AnyView, alignment: Alignment, progress: CGFloat) -> some View {
-        view
+    private func underlay(
+        _ view: AnyView,
+        alignment: Alignment,
+        parallaxSign: CGFloat,
+        progress: CGFloat
+    ) -> some View {
+        // Reveal-эффект, всё от progress:
+        // - blur: гипербола с клампом; в нуле доопределена пределом maxBlur,
+        //   чтобы функция была непрерывной (без разрыва на progress=0).
+        // - opacity: progress, клампленный в 1.
+        // - параллакс: при progress=0 утоплено на долю ширины, к progress=1
+        //   приезжает на место (home), при >1 продолжает уезжать.
+        let blurRadius: CGFloat = progress > 0
+            ? min(TetherLayout.maxBlur, TetherLayout.revealBlurK / progress)
+            : TetherLayout.maxBlur
+        let dx = parallaxSign * TetherLayout.parallaxTuckFraction * width * (1 - progress)
+
+        return view
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
-            // Дефолтный reveal - opacity по прогрессу (клампим в 1; сам progress
-            // не ограничен). Позже здесь будет твой tether-эффект, читающий
-            // progress (блюр/скейл), пока всё внутреннее.
+            .blur(radius: blurRadius)
             .opacity(Double(min(progress, 1)))
+            .offset(x: dx)
     }
 }
