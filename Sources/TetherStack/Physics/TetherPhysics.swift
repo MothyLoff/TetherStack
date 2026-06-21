@@ -38,5 +38,5 @@ enum TetherPhysics {
 
     /// Neighbor cutoff radius. Beyond it the multiplier is 0.
     static let cutoff: CGFloat = 6
-    
+
 }

@@ -19,5 +19,5 @@ struct TetherDragState: Equatable {
         let distance = CGFloat(index - lead)
         return leadTranslation * TetherPhysics.falloff(d: distance)
     }
-    
+
 }

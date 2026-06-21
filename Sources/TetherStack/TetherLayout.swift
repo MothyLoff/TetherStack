@@ -4,7 +4,7 @@ import SwiftUI
 
 /// Shared layout and animation constants - a single place to tune.
 enum TetherLayout {
-    
+
     /// Name of the container's coordinate space. Must match in `TetherVStack`
     /// (which declares the space and measures row centers) and in
     /// `TetherPanGesture` (which converts the touch point into this same space).
@@ -45,5 +45,5 @@ enum TetherLayout {
     /// underlay is tucked `parallaxTuckFraction · width` toward the edge, at `1`
     /// it sits exactly home, and beyond `1` it keeps sliding out ("stretches").
     static let parallaxTuckFraction: CGFloat = 0.04
-    
+
 }

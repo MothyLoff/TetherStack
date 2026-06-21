@@ -109,6 +109,7 @@ struct TetherPanGesture: UIGestureRecognizerRepresentable {
         ) -> Bool {
             other.view is UIScrollView
         }
+
     }
-    
+
 }
