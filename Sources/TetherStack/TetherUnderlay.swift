@@ -1,15 +1,18 @@
 import SwiftUI
 
+
+
 // MARK: - Public vertical alignment
 
-/// Вертикальное выравнивание контента подложки в высоте ряда.
+/// Vertical alignment of the underlay content within the row's height.
 ///
-/// Намеренно НЕ `SwiftUI.VerticalAlignment`: тот тащит `firstTextBaseline` /
-/// `lastTextBaseline`, которые в прямоугольнике ряда не имеют смысла, плюс
-/// протокольный шум в автодополнении. Здесь только три осмысленных варианта -
-/// тот же принцип, что у `HorizontalEdge` для стороны: невалидное состояние
-/// непредставимо.
+/// Deliberately NOT `SwiftUI.VerticalAlignment`: that one drags in
+/// `firstTextBaseline` / `lastTextBaseline`, which are meaningless inside a row
+/// rectangle, plus protocol noise in autocomplete. Only the three meaningful
+/// cases here - the same principle as `HorizontalEdge` for the side: invalid
+/// state is unrepresentable.
 public enum TetherVerticalAlignment {
+    
     case top
     case center
     case bottom
@@ -21,36 +24,43 @@ public enum TetherVerticalAlignment {
         case .bottom: .bottom
         }
     }
+    
 }
+
+
 
 // MARK: - Underlay payload
 
-/// Контент подложки + его вертикальное выравнивание в ряду. Горизонтальная ось
-/// (сторона раскрытия) здесь НЕ хранится - её несёт сам ключ контейнера
-/// (`leading`/`trailing`), это функциональная ось, а не косметическая.
+/// Underlay content + its vertical alignment in the row. The horizontal axis
+/// (the reveal side) is NOT stored here - it is carried by the container key
+/// itself (`leading`/`trailing`); that is the functional axis, not a cosmetic one.
 struct TetherUnderlayContent {
     let view: AnyView
     let verticalAlignment: TetherVerticalAlignment
 }
 
+
+
 // MARK: - Container values
 
-// Контент подложки каждой стороны. Передаётся в контейнер через container values
-// (iOS 18+, как `.tag` / `.badge`): модификатор вешает значение на ряд, а
-// `TetherVStack` читает его при перечислении субвью через `Group(subviews:)`.
+// Per-side underlay content. Passed into the container via container values
+// (iOS 18+, like `.tag` / `.badge`): the modifier attaches the value to the row,
+// and `TetherVStack` reads it while enumerating subviews via `Group(subviews:)`.
 extension ContainerValues {
     @Entry var tetherLeadingUnderlay: TetherUnderlayContent? = nil
     @Entry var tetherTrailingUnderlay: TetherUnderlayContent? = nil
 }
 
+
+
 // MARK: - Public modifier
 
 public extension View {
 
-    /// Декларирует контент, лежащий под плашкой с указанного края; проявляется
-    /// при оттягивании плашки в эту сторону.
+    /// Declares the content that sits under the plate on the given edge; it is
+    /// revealed as the plate is pulled toward that side.
     ///
-    /// Можно повесить независимо на оба края с разным контентом:
+    /// You can attach different content to each edge independently:
     /// ```swift
     /// RowView(item)
     ///     .tetherUnderlay(.leading)  { LeadingContent(item) }
@@ -58,17 +68,17 @@ public extension View {
     /// ```
     ///
     /// - Parameters:
-    ///   - edge: сторона раскрытия. Нативный `HorizontalEdge`; в RTL стороны и
-    ///     свайпы зеркалятся автоматически через `\.layoutDirection`, как у
-    ///     `swipeActions(edge:)`. Функциональная ось - «центрального» раскрытия
-    ///     не бывает, поэтому она типобезопасна, а не часть `Alignment`.
-    ///   - verticalAlignment: вертикальное выравнивание контента в высоте ряда
-    ///     (высоту задаёт front-плашка). По умолчанию `.center`; `.top` совместит
-    ///     верх подложки с верхом плашки. Косметическая ось.
+    ///   - edge: the reveal side. A native `HorizontalEdge`; in RTL the sides and
+    ///     swipes mirror automatically via `\.layoutDirection`, like
+    ///     `swipeActions(edge:)`. This is the functional axis - there is no
+    ///     "center" reveal, so it is type-safe rather than part of `Alignment`.
+    ///   - verticalAlignment: vertical alignment of the content within the row's
+    ///     height (the front plate sets the height). Defaults to `.center`;
+    ///     `.top` aligns the underlay's top with the plate's top. Cosmetic axis.
     ///
-    /// Отсутствие подложки на стороне НЕ отключает оттягивание: плашка всё равно
-    /// тянется (однородная физика верёвочной лестницы), просто под ней с этой
-    /// стороны ничего не проявляется.
+    /// A missing underlay on a side does NOT disable the pull: the plate still
+    /// moves (uniform rope-ladder physics), there is simply nothing to reveal
+    /// under it on that side.
     func tetherUnderlay<Underlay: View>(
         _ edge: HorizontalEdge,
         verticalAlignment: TetherVerticalAlignment = .center,
@@ -85,4 +95,5 @@ public extension View {
             return containerValue(\.tetherTrailingUnderlay, payload)
         }
     }
+    
 }

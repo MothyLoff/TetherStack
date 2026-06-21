@@ -1,26 +1,29 @@
 import SwiftUI
 import UIKit
 
-/// Мост между UIKit-жестом и SwiftUI-состоянием контейнера.
+
+
+/// Bridge between the UIKit gesture and the container's SwiftUI state.
 ///
-/// `UIGestureRecognizerRepresentable` (iOS 18+) навешивает НАСТОЯЩИЙ UIKit
-/// recognizer прямо на SwiftUI-вью - без оборачивания всего контейнера в
-/// `UIViewRepresentable`. Это и есть вариант A: контейнер остаётся нативным
-/// SwiftUI, а реальный recognizer даёт directional lock, недоступный в чистом
-/// SwiftUI `Gesture`.
+/// `UIGestureRecognizerRepresentable` (iOS 18+) attaches a REAL UIKit recognizer
+/// directly onto a SwiftUI view - without wrapping the whole container in a
+/// `UIViewRepresentable`. This is option A: the container stays native SwiftUI,
+/// while a real recognizer provides the directional lock that pure SwiftUI
+/// `Gesture` cannot.
 ///
-/// Directional lock реализован НЕ сабклассом с `state = .failed`, а делегатным
-/// `gestureRecognizerShouldBegin(_:)` на границе `possible -> began`: меряем
-/// `velocity`, явная горизонталь -> begin (забираем), иначе -> провал (касание
-/// уходит внешнему скроллу). Так нет гонки began/failed.
+/// The directional lock is implemented NOT via a subclass with `state = .failed`,
+/// but via the delegate `gestureRecognizerShouldBegin(_:)` at the
+/// `possible -> began` boundary: we measure `velocity`, and a clear horizontal
+/// -> begin (claim it), otherwise -> fail (the touch goes to the outer scroll).
+/// This avoids the began/failed race.
 struct TetherPanGesture: UIGestureRecognizerRepresentable {
 
     @Binding var drag: TetherDragState
 
-    /// Вертикальные центры рядов в координатах `TetherLayout.coordinateSpaceName`.
+    /// Vertical row centers in `TetherLayout.coordinateSpaceName` coordinates.
     let rowCenters: [Int: CGFloat]
 
-    /// Ширины рядов по индексу - для резинки трансляции (edge/dim ведущего ряда).
+    /// Row widths by index - for the translation rubber band (lead row's dimension).
     let rowWidths: [Int: CGFloat]
 
     func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator {
@@ -41,18 +44,18 @@ struct TetherPanGesture: UIGestureRecognizerRepresentable {
 
         switch recognizer.state {
         case .began:
-            // Точку касания берём через converter -> в той же системе координат,
-            // где меряются центры рядов. Иначе внутри ScrollView lead-детекция
-            // промахивается на величину скролл-оффсета.
+            // Take the touch point via the converter -> into the same coordinate
+            // system where row centers are measured. Otherwise, inside a
+            // ScrollView, lead detection misses by the scroll offset.
             let y = context.converter.location(in: space).y
             drag.leadIndex = nearestRow(toY: y)
             drag.leadTranslation = 0
 
         case .changed:
             let dx = context.converter.localTranslation?.x ?? 0
-            // Гладкая резинка трансляции (arctan): 1:1 в начале, плавно тормозит.
-            // Масштаб сопротивления d = resistanceFraction · ширина ведущего ряда.
-            // Если ширина ещё не измерена (0) - resist вернёт dx (1:1).
+            // Smooth translation rubber band (arctan): 1:1 at first, then eases.
+            // Resistance scale d = resistanceFraction · lead row width.
+            // If the width isn't measured yet (0), resist returns dx (1:1).
             let leadWidth = drag.leadIndex.flatMap { rowWidths[$0] } ?? 0
             drag.leadTranslation = TetherPhysics.resist(
                 dx,
@@ -60,18 +63,18 @@ struct TetherPanGesture: UIGestureRecognizerRepresentable {
             )
 
         case .ended, .cancelled, .failed:
-            // Peek: пружинный возврат в ноль. Перелёт через ноль разрешён -
-            // раскрытие подложки непрерывно по offset (TetherRow.reveal), на
-            // перелёте противоположная сторона раскрыта ~0, мигать нечему.
+            // Peek: spring back to zero. Overshoot past zero is allowed - the
+            // underlay reveal is continuous in offset (TetherRow.reveal); on the
+            // overshoot the opposite side is revealed ~0, so nothing flickers.
             //
-            // leadIndex НЕ зануляем: offset = leadTranslation · falloff, а
-            // leadTranslation и так уходит в 0 анимацией; следующий .began его
-            // перезапишет. Раньше тут был completion { leadIndex = nil } - он
-            // срабатывал асинхронно через ~0.3с и при быстром повторном захвате
-            // ряда занулял leadIndex посреди нового драга (гонка, «1 из 10»).
-            // TODO(физика): инъекция начальной скорости из localVelocity -
-            // SwiftUI-анимация её напрямую не берёт; вариант B даст это через
-            // UISpringTimingParameters.
+            // Do NOT zero leadIndex: offset = leadTranslation · falloff, and
+            // leadTranslation animates to 0 anyway; the next .began overwrites it.
+            // There used to be a completion { leadIndex = nil } here - it fired
+            // asynchronously after ~0.3s and, on a fast re-grab of the row, zeroed
+            // leadIndex in the middle of a new drag (a race, "1 in 10").
+            // TODO(physics): inject initial velocity from localVelocity - the
+            // SwiftUI animation doesn't take it directly; option B would provide
+            // this via UISpringTimingParameters.
             withAnimation(TetherLayout.returnAnimation) {
                 drag.leadTranslation = 0
             }
@@ -81,25 +84,25 @@ struct TetherPanGesture: UIGestureRecognizerRepresentable {
         }
     }
 
-    /// Ближайший по вертикали ряд к точке касания.
+    /// The row vertically nearest to the touch point.
     private func nearestRow(toY y: CGFloat) -> Int? {
         rowCenters.min { abs($0.value - y) < abs($1.value - y) }?.key
     }
 
-    /// Координатор-делегат: directional lock + реактивная координация со скроллом.
+    /// Delegate coordinator: directional lock + reactive coordination with the scroll.
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
 
-        /// Решение на границе possible -> began: забираем касание только при
-        /// явном горизонтальном доминировании, иначе уступаем скроллу.
+        /// Decision at the possible -> began boundary: claim the touch only on a
+        /// clear horizontal dominance, otherwise yield to the scroll.
         func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
             guard let pan = gestureRecognizer as? UIPanGestureRecognizer else { return true }
             let velocity = pan.velocity(in: pan.view)
             return abs(velocity.x) > abs(velocity.y) * TetherLayout.horizontalBias
         }
 
-        /// Чужой recognizer передают параметром - не нужен обход иерархии.
-        /// Просим pan скролла дождаться, пока мы определимся с направлением
-        /// (закрываем тайминговую щель в первые миллиметры).
+        /// The other recognizer is passed in - no view-hierarchy walk needed.
+        /// We ask the scroll's pan to wait until we settle on a direction
+        /// (closing the timing gap in the first millimeters).
         func gestureRecognizer(
             _ gestureRecognizer: UIGestureRecognizer,
             shouldBeRequiredToFailBy other: UIGestureRecognizer
@@ -107,4 +110,5 @@ struct TetherPanGesture: UIGestureRecognizerRepresentable {
             other.view is UIScrollView
         }
     }
+    
 }

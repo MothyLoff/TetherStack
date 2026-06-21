@@ -1,44 +1,49 @@
 import SwiftUI
 
-/// Общие константы раскладки и анимации - один источник для тюнинга.
+
+
+/// Shared layout and animation constants - a single place to tune.
 enum TetherLayout {
-    /// Имя координатного пространства контейнера. Должно совпадать в
-    /// `TetherVStack` (объявляет пространство и меряет центры рядов) и в
-    /// `TetherPanGesture` (конвертит точку касания в это же пространство).
+    
+    /// Name of the container's coordinate space. Must match in `TetherVStack`
+    /// (which declares the space and measures row centers) and in
+    /// `TetherPanGesture` (which converts the touch point into this same space).
     static let coordinateSpaceName = "TetherVStack"
 
-    /// Насколько горизонталь должна доминировать над вертикалью, чтобы жест
-    /// забрал касание себе (иначе - уступка внешнему скроллу). >1 смещает
-    /// приоритет в пользу скролла. Подбирается на устройстве.
+    /// How much horizontal must dominate vertical for the gesture to claim the
+    /// touch (otherwise it yields to the outer scroll). >1 biases the priority
+    /// toward scrolling. Tuned on device.
     static let horizontalBias: CGFloat = 1.3
 
-    /// Доля ширины ряда, на которой подложка раскрыта полностью (progress = 1).
-    /// Сдвиг дальше даёт progress > 1 (оттягивание сверх раскрытия).
+    /// Fraction of row width at which the underlay is fully revealed (progress = 1).
+    /// Pulling further yields progress > 1 (overdrag beyond full reveal).
     static let revealFraction: CGFloat = 0.55
 
-    /// Масштаб сопротивления гладкой резинки трансляции как доля ширины ряда:
-    /// `d = resistanceFraction · width` в `TetherPhysics.resist`. Меньше → плашка
-    /// начинает тормозить раньше и ход короче; больше → дольше идёт почти 1:1.
+    /// Resistance scale of the smooth translation rubber band, as a fraction of
+    /// row width: `d = resistanceFraction · width` in `TetherPhysics.resist`.
+    /// Smaller → the plate brakes sooner and travels less; larger → it stays
+    /// near 1:1 for longer.
     static let resistanceFraction: CGFloat = 0.7
 
-    /// Пружина возврата плашки после отпускания. Пресет `.bouncy` (spring с
-    /// bounce ~0.3) - как в эталоне MultiSwipe; длительность 0.35 подобрана на
-    /// устройстве (в эталоне было 0.3).
+    /// Spring used to return the plate after release. The `.bouncy` preset
+    /// (a spring with bounce ~0.3) matches the MultiSwipe reference; the 0.35
+    /// duration was tuned on device (the reference used 0.3).
     static let returnAnimation: Animation = .bouncy(duration: 0.35)
 
-    /// Потолок reveal-блюра. Подложка выплывает из расфокуса по мере
-    /// оттягивания: `radius = min(maxBlur, blurAtFullReveal / progress)` -
-    /// гипербола, сильный расфокус в начале, быстрый сход к резкости. В нуле
-    /// доопределена пределом `maxBlur` (а не 0), чтобы функция была непрерывной;
-    /// на `opacity = 0` blur-пасс система скипает.
+    /// Reveal-blur ceiling. The underlay swims out of defocus as you pull:
+    /// `radius = min(maxBlur, blurAtFullReveal / progress)` - a hyperbola, heavy
+    /// defocus early, quick settle to sharp. At zero it is defined by the limit
+    /// `maxBlur` (not 0) so the function stays continuous; at `opacity = 0` the
+    /// system skips the blur pass.
     static let maxBlur: CGFloat = 24
 
-    /// Радиус reveal-блюра на полном раскрытии (`progress = 1`) - числитель
-    /// гиперболы блюра. Меньше → подложка резкая уже на полном раскрытии.
+    /// Reveal-blur radius at full reveal (`progress = 1`) - the numerator of the
+    /// blur hyperbola. Smaller → the underlay is already sharp at full reveal.
     static let blurAtFullReveal: CGFloat = 0.2
 
-    /// Параллакс подложки как доля ширины ряда. При `progress = 0` подложка
-    /// утоплена на `parallaxTuckFraction · width` в сторону края, при `1` - ровно
-    /// на месте (home), при `> 1` продолжает уезжать дальше («тянется»).
+    /// Underlay parallax as a fraction of row width. At `progress = 0` the
+    /// underlay is tucked `parallaxTuckFraction · width` toward the edge, at `1`
+    /// it sits exactly home, and beyond `1` it keeps sliding out ("stretches").
     static let parallaxTuckFraction: CGFloat = 0.04
+    
 }

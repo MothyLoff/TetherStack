@@ -1,10 +1,10 @@
 import SwiftUI
 
-/// Вертикальный контейнер, раздающий связанное горизонтальное оттягивание с
-/// затуханием по дуге (эффект верёвочной лестницы на резиночке).
+/// A vertical container that distributes a linked horizontal pull with arc-shaped
+/// falloff (a rope-ladder-on-elastic effect).
 ///
-/// Ведёт себя как `LazyVStack`: своим скроллом НЕ владеет, кладётся во внешний
-/// `ScrollView`, сам сообщает высоту наверх.
+/// Behaves like `LazyVStack`: it does NOT own its scroll, is placed inside an
+/// outer `ScrollView`, and reports its height upward.
 ///
 /// ```swift
 /// ScrollView {
@@ -18,9 +18,9 @@ import SwiftUI
 /// }
 /// ```
 ///
-/// Тянешь одну плашку вбок - она идёт за пальцем, соседи выше и ниже следуют с
-/// инверс-квадратным затуханием по `|i - lead|` (см. `TetherPhysics`). Peek с
-/// пружинным возвратом на отпускание.
+/// Pull one plate sideways and it follows the finger; the neighbors above and
+/// below follow with inverse-square falloff in `|i - lead|` (see `TetherPhysics`).
+/// Peek with a spring-back return on release.
 public struct TetherVStack<Content: View>: View {
 
     private let alignment: HorizontalAlignment
@@ -29,20 +29,20 @@ public struct TetherVStack<Content: View>: View {
 
     @State private var drag = TetherDragState()
 
-    /// Вертикальные центры рядов в системе координат контейнера - нужны слою
-    /// жеста, чтобы по точке касания определить ведущую плашку.
+    /// Vertical row centers in the container's coordinate system - needed by the
+    /// gesture layer to resolve the lead plate from the touch point.
     @State private var rowCenters: [Int: CGFloat] = [:]
 
-    /// Ширины рядов - нужны жесту для резинки трансляции ведущего ряда.
+    /// Row widths - needed by the gesture for the lead row's translation rubber band.
     @State private var rowWidths: [Int: CGFloat] = [:]
 
     /// - Parameters:
-    ///   - alignment: горизонтальное выравнивание рядов, как у `LazyVStack`.
-    ///     По умолчанию `.center`. Имеет смысл для рядов уже контейнера; ряды
-    ///     во всю ширину (например `.frame(maxWidth:)` на front) выравнивать
-    ///     нечего.
-    ///   - spacing: по умолчанию `nil` - как у нативного `VStack`/`LazyVStack`
-    ///     (системный адаптивный интервал), а не фиксированный ноль.
+    ///   - alignment: horizontal alignment of the rows, like `LazyVStack`.
+    ///     Defaults to `.center`. Meaningful for rows narrower than the container;
+    ///     full-width rows (e.g. `.frame(maxWidth:)` on the front) have nothing
+    ///     to align.
+    ///   - spacing: defaults to `nil` - like native `VStack`/`LazyVStack`
+    ///     (the system's adaptive spacing), not a fixed zero.
     public init(
         alignment: HorizontalAlignment = .center,
         spacing: CGFloat? = nil,
@@ -72,9 +72,9 @@ public struct TetherVStack<Content: View>: View {
                     }
                 }
             }
-            // Жест - на LazyVStack рядов; координатное пространство объявлено
-            // выше, на Group, чтобы converter.location(in:) резолвил его как
-            // предка вью, к которой привязан recognizer.
+            // The gesture lives on the rows' LazyVStack; the coordinate space is
+            // declared above on the Group so that converter.location(in:) resolves
+            // it as an ancestor of the view the recognizer is attached to.
             .gesture(
                 TetherPanGesture(
                     drag: $drag,
@@ -87,8 +87,9 @@ public struct TetherVStack<Content: View>: View {
     }
 }
 
-/// Один ряд: front-плашка над подложками. Front сдвигается на `offset`, подложки
-/// стоят на месте - так из-под плашки проявляется reveal-контент.
+/// A single row: the front plate over its underlays. The front shifts by
+/// `offset` while the underlays stay put - that is how the reveal content
+/// emerges from beneath the plate.
 private struct TetherRow<Front: View>: View, @MainActor Animatable {
 
     let front: Front
@@ -98,31 +99,35 @@ private struct TetherRow<Front: View>: View, @MainActor Animatable {
 
     @State private var width: CGFloat = 0
 
-    // Все эффекты ряда (offset плашки, opacity/blur/параллакс подложки) считаются
-    // из `offset`. Делаем его animatableData, чтобы на возврате `withAnimation`
-    // интерполировал ОДНО значение и пересчитывал body покадрово - тогда подложка
-    // уезжает синхронно с плашкой, а не дёргается независимыми модификаторами
-    // (иначе на отпускании она схлопывается не в ногу - «исчезает мгновенно»).
+    // All of the row's effects (plate offset, underlay opacity/blur/parallax) are
+    // computed from `offset`. We make it animatableData so that on the return
+    // `withAnimation` interpolates ONE value and recomputes the body frame by
+    // frame - then the underlay moves in lockstep with the plate, rather than
+    // jerking via independent modifiers (otherwise on release it collapses out of
+    // sync - reads as "disappears instantly").
     var animatableData: CGFloat {
         get { offset }
         set { offset = newValue }
     }
 
     var body: some View {
-        // Высоту ряда задаёт ТОЛЬКО front (плашка). Подложки вешаются как
-        // .background оффсетнутого front'а - background-семантика: сайзятся по
-        // хосту, overflow разрешён, в лейаут ряда НЕ входят (как .background /
-        // .overlay в SwiftUI). Высокий underlay не растит ряд и не клипается.
+        // Only the front (plate) sets the row's height. The underlays are attached
+        // as .background of the offset front - background semantics: they size to
+        // the host, overflow is allowed, and they do NOT enter the row's layout
+        // (like .background / .overlay in SwiftUI). A tall underlay neither grows
+        // the row nor gets clipped.
         //
-        // .offset не меняет layout-фрейм, поэтому background остаётся статичным,
-        // пока плашка едет over него - это и есть reveal. Обе подложки в фоне
-        // всегда; раскрытие стороны - непрерывная функция offset (reveal), на
-        // перелёте пружины противоположная сторона раскрыта ~0, мигать нечему.
+        // .offset doesn't change the layout frame, so the background stays static
+        // while the plate moves over it - that is the reveal. Both underlays are
+        // always in the background; a side's reveal is a continuous function of
+        // offset (reveal), and on a spring overshoot the opposite side is revealed
+        // ~0, so nothing flickers.
         //
-        // Ширину front НЕ форсим: ряд занимает натуральную ширину контента, а
-        // позиционирует его горизонтальный alignment контейнера (как нативный
-        // LazyVStack). Подложки перекрыты при любой ширине - они background'и
-        // самого front'а. Нужен full-width - ставь .frame(maxWidth:) на front.
+        // We do NOT force the front's width: the row takes the content's natural
+        // width and is positioned by the container's horizontal alignment (like
+        // native LazyVStack). The underlays are covered at any width - they are
+        // backgrounds of the front itself. Need full width - put .frame(maxWidth:)
+        // on the front.
         front
             .offset(x: offset)
             .background {
@@ -140,9 +145,9 @@ private struct TetherRow<Front: View>: View, @MainActor Animatable {
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
     }
 
-    /// Прогресс раскрытия стороны. Положителен только когда плашка ушла в эту
-    /// сторону (`signedOffset > 0`). `progress = 1` при сдвиге на `revealFraction`
-    /// ширины; может быть `> 1` при оттягивании дальше (для будущего эффекта).
+    /// Reveal progress for a side. Positive only when the plate has moved toward
+    /// that side (`signedOffset > 0`). `progress = 1` at a shift of `revealFraction`
+    /// of the width; may be `> 1` when pulled further (for a future effect).
     private func reveal(forSignedOffset signedOffset: CGFloat) -> CGFloat {
         guard signedOffset > 0, width > 0 else { return 0 }
         return signedOffset / (TetherLayout.revealFraction * width)
@@ -154,15 +159,15 @@ private struct TetherRow<Front: View>: View, @MainActor Animatable {
         parallaxSign: CGFloat,
         progress: CGFloat
     ) -> some View {
-        // Reveal-эффект, всё от progress:
-        // - blur: гипербола с клампом; в нуле доопределена пределом maxBlur,
-        //   чтобы функция была непрерывной (без разрыва на progress=0).
-        // - opacity: progress, клампленный в 1.
-        // - параллакс: при progress=0 утоплено на долю ширины, к progress=1
-        //   приезжает на место (home), при >1 продолжает уезжать.
+        // Reveal effect, all driven by progress:
+        // - blur: a clamped hyperbola; at zero it is defined by the limit maxBlur
+        //   so the function stays continuous (no discontinuity at progress=0).
+        // - opacity: progress, clamped to 1.
+        // - parallax: at progress=0 it is tucked by a fraction of width, by
+        //   progress=1 it arrives home, beyond 1 it keeps sliding out.
         //
-        // Горизонталь якоря - сторона раскрытия (функциональная ось), вертикаль -
-        // пользовательский verticalAlignment (косметическая, дефолт .center).
+        // The anchor's horizontal is the reveal side (functional axis), the
+        // vertical is the user's verticalAlignment (cosmetic, default .center).
         let blurRadius: CGFloat = progress > 0
             ? min(TetherLayout.maxBlur, TetherLayout.blurAtFullReveal / progress)
             : TetherLayout.maxBlur

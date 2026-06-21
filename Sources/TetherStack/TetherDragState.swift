@@ -1,20 +1,23 @@
 import CoreGraphics
 
-/// Состояние активного оттягивания. Живёт как `@State` в `TetherVStack`,
-/// мутируется слоем жеста, читается раскладкой рядов.
+
+
+/// State of an active pull. Lives as `@State` in `TetherVStack`, mutated by the
+/// gesture layer, read by the row layout.
 struct TetherDragState: Equatable {
 
-    /// Индекс ведущей плашки (под которой начался жест). `nil` - оттягивания нет.
+    /// Index of the lead plate (the one the gesture started under). `nil` - no pull.
     var leadIndex: Int?
 
-    /// Горизонтальное смещение ведущей плашки в точках (уже пропущено через
-    /// `TetherPhysics.resist`). Знак: + вправо, - влево.
+    /// Horizontal offset of the lead plate in points (already passed through
+    /// `TetherPhysics.resist`). Sign: + right, - left.
     var leadTranslation: CGFloat = 0
 
-    /// Смещение ряда `index` с учётом затухания по дистанции до ведущего.
+    /// Offset of row `index`, attenuated by its distance to the lead.
     func offset(for index: Int) -> CGFloat {
         guard let lead = leadIndex else { return 0 }
         let distance = CGFloat(index - lead)
         return leadTranslation * TetherPhysics.falloff(d: distance)
     }
+    
 }
