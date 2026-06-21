@@ -23,7 +23,7 @@ import SwiftUI
 /// (см. `TetherPhysics`). Peek с пружинным возвратом на отпускание.
 public struct TetherVStack<Content: View>: View {
 
-    private let spacing: CGFloat
+    private let spacing: CGFloat?
     private let content: Content
 
     @State private var drag = TetherDragState()
@@ -32,7 +32,9 @@ public struct TetherVStack<Content: View>: View {
     /// жеста, чтобы по точке касания определить ведущую плашку.
     @State private var rowCenters: [Int: CGFloat] = [:]
 
-    public init(spacing: CGFloat = 0, @ViewBuilder content: () -> Content) {
+    /// `spacing` по умолчанию `nil` - как у нативного `VStack` (системный
+    /// адаптивный интервал), а не фиксированный ноль.
+    public init(spacing: CGFloat? = nil, @ViewBuilder content: () -> Content) {
         self.spacing = spacing
         self.content = content()
     }
