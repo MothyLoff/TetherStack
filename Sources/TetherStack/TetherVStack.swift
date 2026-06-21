@@ -89,14 +89,24 @@ public struct TetherVStack<Content: View>: View {
 
 /// Один ряд: front-плашка над подложками. Front сдвигается на `offset`, подложки
 /// стоят на месте - так из-под плашки проявляется reveal-контент.
-private struct TetherRow<Front: View>: View {
+private struct TetherRow<Front: View>: View, @MainActor Animatable {
 
     let front: Front
     let leading: TetherUnderlayContent?
     let trailing: TetherUnderlayContent?
-    let offset: CGFloat
+    var offset: CGFloat
 
     @State private var width: CGFloat = 0
+
+    // Все эффекты ряда (offset плашки, opacity/blur/параллакс подложки) считаются
+    // из `offset`. Делаем его animatableData, чтобы на возврате `withAnimation`
+    // интерполировал ОДНО значение и пересчитывал body покадрово - тогда подложка
+    // уезжает синхронно с плашкой, а не дёргается независимыми модификаторами
+    // (иначе на отпускании она схлопывается не в ногу - «исчезает мгновенно»).
+    var animatableData: CGFloat {
+        get { offset }
+        set { offset = newValue }
+    }
 
     var body: some View {
         // Высоту ряда задаёт ТОЛЬКО front (плашка). Подложки вешаются как
