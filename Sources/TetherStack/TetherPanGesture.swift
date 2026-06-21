@@ -50,12 +50,20 @@ struct TetherPanGesture: UIGestureRecognizerRepresentable {
             drag.leadTranslation = dx / TetherPhysics.fingerDivisor
 
         case .ended, .cancelled, .failed:
-            // Peek: пружинный возврат в ноль.
+            // Peek: пружинный возврат в ноль. Перелёт через ноль разрешён -
+            // раскрытие подложки непрерывно по offset (TetherRow.reveal), на
+            // перелёте противоположная сторона раскрыта ~0, мигать нечему.
+            //
+            // leadIndex НЕ зануляем: offset = leadTranslation · falloff, а
+            // leadTranslation и так уходит в 0 анимацией; следующий .began его
+            // перезапишет. Раньше тут был completion { leadIndex = nil } - он
+            // срабатывал асинхронно через ~0.3с и при быстром повторном захвате
+            // ряда занулял leadIndex посреди нового драга (гонка, «1 из 10»).
             // TODO(физика): инъекция начальной скорости из localVelocity -
             // SwiftUI-анимация её напрямую не берёт; вариант B даст это через
             // UISpringTimingParameters.
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                drag.reset()
+            withAnimation(TetherLayout.returnAnimation) {
+                drag.leadTranslation = 0
             }
 
         default:
