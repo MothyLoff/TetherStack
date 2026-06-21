@@ -83,30 +83,35 @@ private struct TetherRow<Front: View>: View {
     @State private var width: CGFloat = 0
 
     var body: some View {
-        ZStack {
-            // Обе подложки лежат под плашкой ВСЕГДА; непрозрачная плашка
-            // закрывает их в покое. Раскрытие каждой стороны - НЕПРЕРЫВНАЯ
-            // функция от положения плашки (reveal(forSignedOffset:)), без веток
-            // по знаку offset. Поэтому на перелёте пружины через ноль
-            // противоположная сторона раскрыта почти на ноль - мигать нечему.
-            if let leading {
-                underlay(leading, horizontal: .leading, parallaxSign: -1,
-                         progress: reveal(forSignedOffset: offset))
+        // Высоту ряда задаёт ТОЛЬКО front (плашка). Подложки вешаются как
+        // .background оффсетнутого front'а - background-семантика: сайзятся по
+        // хосту, overflow разрешён, в лейаут ряда НЕ входят (как .background /
+        // .overlay в SwiftUI). Высокий underlay не растит ряд и не клипается.
+        //
+        // .offset не меняет layout-фрейм, поэтому background остаётся статичным,
+        // пока плашка едет over него - это и есть reveal. Обе подложки в фоне
+        // всегда; раскрытие стороны - непрерывная функция offset (reveal), на
+        // перелёте пружины противоположная сторона раскрыта ~0, мигать нечему.
+        //
+        // front тянется на всю ширину силами контейнера (.frame(maxWidth:)), а не
+        // за счёт растягивающейся фигуры внутри; padding пользователь добавляет
+        // сверху сам.
+        front
+            .frame(maxWidth: .infinity)
+            .offset(x: offset)
+            .background {
+                if let leading {
+                    underlay(leading, horizontal: .leading, parallaxSign: -1,
+                             progress: reveal(forSignedOffset: offset))
+                }
             }
-            if let trailing {
-                underlay(trailing, horizontal: .trailing, parallaxSign: 1,
-                         progress: reveal(forSignedOffset: -offset))
+            .background {
+                if let trailing {
+                    underlay(trailing, horizontal: .trailing, parallaxSign: 1,
+                             progress: reveal(forSignedOffset: -offset))
+                }
             }
-
-            front
-                // Дефолт API: front-контент тянется на всю ширину ряда силами
-                // контейнера (а не за счёт того, что внутри лежит растягивающаяся
-                // фигура). Так underlay по краям всегда перекрыты в покое, а
-                // padding пользователь накидывает сверху сам.
-                .frame(maxWidth: .infinity)
-                .offset(x: offset)
-        }
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
     }
 
     /// Прогресс раскрытия стороны. Положителен только когда плашка ушла в эту
