@@ -5,8 +5,7 @@ import SwiftUI
 /// A vertical container that distributes a linked horizontal pull with arc-shaped
 /// falloff (a rope-ladder-on-elastic effect).
 ///
-/// Behaves like `LazyVStack`: it does NOT own its scroll, is placed inside an
-/// outer `ScrollView`, and reports its height upward.
+/// Behaves like `LazyVStack`.
 ///
 /// ```swift
 /// ScrollView {
@@ -25,28 +24,31 @@ import SwiftUI
 /// Peek with a spring-back return on release.
 public struct TetherVStack<Content: View>: View {
 
+
     private let alignment: HorizontalAlignment
 
     private let spacing: CGFloat?
 
     private let content: Content
 
+
     @State private var drag = TetherDragState()
+
 
     /// Vertical row centers in the container's coordinate system - needed by the
     /// gesture layer to resolve the lead plate from the touch point.
     @State private var rowCenters: [Int: CGFloat] = [:]
 
+
     /// Row widths - needed by the gesture for the lead row's translation rubber band.
     @State private var rowWidths: [Int: CGFloat] = [:]
 
+
     /// - Parameters:
     ///   - alignment: horizontal alignment of the rows, like `LazyVStack`.
-    ///     Defaults to `.center`. Meaningful for rows narrower than the container;
-    ///     full-width rows (e.g. `.frame(maxWidth:)` on the front) have nothing
-    ///     to align.
-    ///   - spacing: defaults to `nil` - like native `VStack`/`LazyVStack`
-    ///     (the system's adaptive spacing), not a fixed zero.
+    ///     Defaults to `.center`. Meaningful for rows narrower than the container.
+    ///   - spacing: defaults to `nil` - like native `VStack`/`LazyVStack`, the
+    ///     system's adaptive spacing.
     public init(
         alignment: HorizontalAlignment = .center,
         spacing: CGFloat? = nil,
@@ -56,6 +58,7 @@ public struct TetherVStack<Content: View>: View {
         self.spacing = spacing
         self.content = content()
     }
+
 
     public var body: some View {
         Group(subviews: content) { subviews in
@@ -89,5 +92,6 @@ public struct TetherVStack<Content: View>: View {
         }
         .coordinateSpace(.named(TetherLayout.coordinateSpaceName))
     }
+
 
 }
